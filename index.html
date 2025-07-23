@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CignalPlay - IPTV Player</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/shaka-player@4.3.6/dist/shaka-player.compiled.js"></script>
+</head>
+<body class="theme-dark">
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <div class="logo">
+                <span class="logo-icon">●</span>
+                <span class="logo-text">CignalPlay</span>
+            </div>
+            <nav class="nav-menu">
+                <a href="#" class="nav-item">HOME</a>
+                <a href="#" class="nav-item active">LIVE TV</a>
+                <a href="#" class="nav-item">MOVIES & SERIES</a>
+                <a href="#" class="nav-item">MY VIDEOS</a>
+                <a href="#" class="nav-item">STORE</a>
+            </nav>
+        </div>
+        <div class="header-right">
+            <div class="user-info" id="userInfo" style="display: none;">
+                <span class="user-name" id="userName"></span>
+                <span class="user-plan" id="userPlan"></span>
+            </div>
+            <div class="timer" id="currentTime">00:00:00</div>
+            <button class="search-btn" id="searchBtn">🔍</button>
+            <button class="settings-btn" id="settingsBtn">⚙️</button>
+            <button class="profile-btn" id="profileBtn">👤</button>
+            <button class="signout-btn" id="signOutBtn" style="display: none;">Sign Out</button>
+        </div>
+    </header>
+
+    <!-- Search Modal -->
+    <div id="searchModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Search Channels</h2>
+                <button class="close-btn" id="closeSearch">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="searchInput" class="search-input" placeholder="Search channels...">
+                <div id="searchResults" class="search-results"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Settings</h2>
+                <button class="close-btn" id="closeSettings">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-item">
+                    <label>Theme</label>
+                    <div class="theme-toggle">
+                        <button id="darkTheme" class="theme-btn active">Dark</button>
+                        <button id="lightTheme" class="theme-btn">Light</button>
+                    </div>
+                </div>
+                <div class="setting-item">
+                    <label>Auto-play</label>
+                    <input type="checkbox" id="autoPlay" checked>
+                </div>
+                <div class="setting-item">
+                    <label>Volume</label>
+                    <input type="range" id="volumeSlider" min="0" max="100" value="50">
+                </div>
+                <div class="setting-item">
+                    <label>Test All Channels</label>
+                    <button id="testAllBtn" class="test-all-btn">Start Testing</button>
+                </div>
+                <div id="testProgress" class="test-progress" style="display: none;">
+                    <div class="progress-bar">
+                        <div id="progressFill" class="progress-fill"></div>
+                    </div>
+                    <div id="testStatus" class="test-status">Ready to test...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Sign In to CignalPlay</h2>
+                <button class="close-btn" id="closeLogin">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="loginForm">
+                    <div class="login-field">
+                        <label for="username">Username</label>
+                        <input type="text" id="username" name="username" required>
+                    </div>
+                    <div class="login-field">
+                        <label for="password">Password</label>
+                        <input type="password" id="password" name="password" required>
+                    </div>
+                    <div class="login-field">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="rememberMe">
+                            <span>Remember me</span>
+                        </label>
+                    </div>
+                    <div id="loginError" class="login-error" style="display: none;"></div>
+                    <button type="submit" class="login-btn">Sign In</button>
+                </form>
+                <div class="login-info">
+                    <h4>Available Plans:</h4>
+                    <p><strong>CignalTV (Freebie):</strong> Basic channels</p>
+                    <p><strong>CignalPlay (Premium):</strong> Most channels</p>
+                    <p><strong>CignalAll (All-in-One):</strong> All channels</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>LIVE TV</h2>
+                <p>Local</p>
+            </div>
+            <div class="sidebar-content">
+                <div class="current-channel" id="currentChannelInfo">
+                    <div class="channel-logo">📺</div>
+                    <div class="channel-details">
+                        <h3>Select a channel</h3>
+                        <p>Choose from the categories below</p>
+                    </div>
+                </div>
+                <div class="channel-stats">
+                    <div class="stat">
+                        <span class="stat-number" id="totalChannels">0</span>
+                        <span class="stat-label">Total Channels</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number" id="workingChannels">0</span>
+                        <span class="stat-label">Working</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Content Area -->
+        <div class="content-area">
+            <!-- Video Player -->
+            <div class="video-container" id="videoContainer">
+                <video id="videoPlayer" class="video-player" controls></video>
+                <div class="video-overlay" id="videoOverlay">
+                    <div class="play-icon">▶</div>
+                    <p>Select a channel to start watching</p>
+                </div>
+                <div class="loading-spinner" id="loadingSpinner" style="display: none;"></div>
+            </div>
+
+            <!-- Channel Categories -->
+            <div class="channels-container">
+                <!-- Local Channels -->
+                <section class="channel-category">
+                    <h2 class="category-title">Local</h2>
+                    <div class="channel-grid" id="localChannels"></div>
+                </section>
+
+                <!-- Sports -->
+                <section class="channel-category">
+                    <h2 class="category-title">Sports</h2>
+                    <div class="channel-grid" id="sportsChannels"></div>
+                </section>
+
+                <!-- Entertainment -->
+                <section class="channel-category">
+                    <h2 class="category-title">Entertainment</h2>
+                    <div class="channel-grid" id="entertainmentChannels"></div>
+                </section>
+
+                <!-- Movies -->
+                <section class="channel-category">
+                    <h2 class="category-title">Movies</h2>
+                    <div class="channel-grid" id="moviesChannels"></div>
+                </section>
+
+                <!-- News -->
+                <section class="channel-category">
+                    <h2 class="category-title">News</h2>
+                    <div class="channel-grid" id="newsChannels"></div>
+                </section>
+
+                <!-- Kids -->
+                <section class="channel-category">
+                    <h2 class="category-title">Kids</h2>
+                    <div class="channel-grid" id="kidsChannels"></div>
+                </section>
+
+                <!-- Educational -->
+                <section class="channel-category">
+                    <h2 class="category-title">Educational</h2>
+                    <div class="channel-grid" id="educationalChannels"></div>
+                </section>
+
+                <!-- Asian & Foreign -->
+                <section class="channel-category">
+                    <h2 class="category-title">Asian & Foreign</h2>
+                    <div class="channel-grid" id="asianChannels"></div>
+                </section>
+
+                <!-- CignalTV Exclusives -->
+                <section class="channel-category">
+                    <h2 class="category-title">CignalTV Exclusives</h2>
+                    <div class="channel-grid" id="exclusiveChannels"></div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <script src="channels.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
